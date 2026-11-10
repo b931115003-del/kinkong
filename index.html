@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>金剛爬塔 Kong Climber</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d0d1a;--gold:#f5a623;--teal:#00c8f0;--red:#e94560;--green:#06d6a0;--purple:#9060d0;
+  --text:#e0e0f0;--text2:#7070a0;
+}
+body{background:var(--bg);background-image:radial-gradient(ellipse at 20% 0%,#1a1040 0%,transparent 55%),radial-gradient(ellipse at 80% 100%,#0a1f35 0%,transparent 55%);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:0 8px 12px;overflow-x:hidden;}
+
+/* ── HEADER ── */
+header{width:100%;max-width:700px;display:flex;align-items:center;justify-content:space-between;padding:10px 0 6px;flex-wrap:wrap;gap:6px;}
+.game-title{font-size:20px;font-weight:900;letter-spacing:3px;color:var(--gold);text-shadow:0 0 20px rgba(245,166,35,.5);}
+.game-title sub{font-size:10px;font-weight:400;color:var(--text2);letter-spacing:1px;margin-left:5px;vertical-align:middle;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;font-size:12px;font-weight:600;letter-spacing:.4px;border-radius:9px;cursor:pointer;transition:all .17s ease;border:1px solid #28285a;color:#c0c0e8;background:linear-gradient(155deg,#1e1e40,#111128);box-shadow:0 3px 10px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.4);}
+.btn:hover{border-color:rgba(0,200,240,.4);color:var(--teal);transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,0,0,.5),0 0 10px rgba(0,200,240,.1);}
+.btn:active{transform:translateY(1px);}
+.btn-gold{border-color:rgba(245,166,35,.4);color:var(--gold);}
+.btn-gold:hover{border-color:var(--gold);}
+.btn-red{background:linear-gradient(135deg,#e94560,#c02b48 55%,#8e1830);border:none;color:#fff;box-shadow:0 4px 18px rgba(233,69,96,.4),inset 0 1px 0 rgba(255,255,255,.12),inset 0 -2px 0 rgba(0,0,0,.3);}
+.btn-red:hover{transform:translateY(-2px);box-shadow:0 7px 24px rgba(233,69,96,.55);}
+.btn-green{background:linear-gradient(135deg,#06b060,#047a40);border:none;color:#fff;box-shadow:0 4px 18px rgba(6,160,80,.35),inset 0 1px 0 rgba(255,255,255,.12);}
+.btn-green:hover{transform:translateY(-2px);}
+
+/* ── MAIN LAYOUT ── */
+.main{width:100%;max-width:700px;display:grid;grid-template-columns:1fr 260px;gap:10px;align-items:start;}
+@media(max-width:620px){.main{grid-template-columns:1fr;}}
+
+/* ── GAME AREA ── */
+.game-area{display:flex;flex-direction:column;align-items:center;gap:6px;}
+
+/* ── HUD ── */
+.hud{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.hud-block{text-align:center;padding:5px 12px;border-radius:9px;background:linear-gradient(160deg,#1c1c38,#0e0e22);border:1px solid #252550;box-shadow:0 2px 8px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04);}
+.hud-val{font-size:17px;font-weight:800;line-height:1;}
+.hud-label{font-size:9px;color:var(--text2);margin-top:2px;letter-spacing:.8px;text-transform:uppercase;}
+.lives-row{display:flex;gap:3px;align-items:center;}
+.life-icon{font-size:14px;}
+
+/* ── CANVAS ── */
+.canvas-wrap{position:relative;}
+#gameCanvas{display:block;border-radius:10px;image-rendering:pixelated;box-shadow:0 8px 40px rgba(0,0,0,.7),0 0 0 2px rgba(255,255,255,.04);}
+
+/* ── OVERLAYS ── */
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;gap:10px;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(8px);}
+.overlay.show{opacity:1;pointer-events:all;}
+.ov-bg-dark{background:rgba(5,5,20,.92);}
+.ov-emoji{font-size:48px;line-height:1;}
+.ov-title{font-size:22px;font-weight:800;letter-spacing:1px;}
+.ov-title.gold{color:var(--gold);text-shadow:0 0 20px rgba(245,166,35,.5);}
+.ov-title.red{color:var(--red);}
+.ov-title.teal{color:var(--teal);}
+.ov-sub{font-size:12px;color:var(--text2);text-align:center;max-width:220px;line-height:1.5;}
+.ov-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px;}
+
+/* ── D-PAD ── */
+.dpad-area{display:flex;align-items:center;gap:14px;margin:5px 0;}
+.dpad-wrap{padding:9px;border-radius:18px;background:linear-gradient(145deg,#111128,#0a0a1a);border:1px solid #1e1e40;box-shadow:0 6px 24px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.025);}
+.dpad{display:grid;grid-template-areas:". up ." "left . right" ". down .";gap:4px;}
+.dpad-btn{width:50px;height:50px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;touch-action:manipulation;color:#9090c8;background:linear-gradient(145deg,#232345,#141432);border:1px solid #2e2e60;box-shadow:0 4px 12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -2px 0 rgba(0,0,0,.45);transition:all .1s ease;position:relative;overflow:hidden;}
+.dpad-btn::after{content:'';position:absolute;top:0;left:0;right:0;height:42%;background:linear-gradient(to bottom,rgba(255,255,255,.07),transparent);pointer-events:none;}
+.dpad-btn.up{grid-area:up;border-radius:12px 12px 6px 6px;}
+.dpad-btn.left{grid-area:left;border-radius:12px 6px 6px 12px;}
+.dpad-btn.right{grid-area:right;border-radius:6px 12px 12px 6px;}
+.dpad-btn.down{grid-area:down;display:none;}
+.dpad-btn:active,.dpad-btn.pressed{color:var(--gold);border-color:var(--gold);background:linear-gradient(145deg,#181630,#0e0c22);box-shadow:0 1px 4px rgba(0,0,0,.55),0 0 16px rgba(245,166,35,.28),inset 0 2px 6px rgba(0,0,0,.55);transform:scale(.94);}
+.jump-btn{width:56px;height:56px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;touch-action:manipulation;background:linear-gradient(135deg,#e94560,#8e1830);border:none;color:#fff;box-shadow:0 5px 20px rgba(233,69,96,.4),inset 0 1px 0 rgba(255,255,255,.15),inset 0 -2px 0 rgba(0,0,0,.3);}
+.jump-btn:active{transform:scale(.92);box-shadow:0 2px 8px rgba(233,69,96,.35),inset 0 2px 5px rgba(0,0,0,.4);}
+.hint{font-size:11px;color:#333360;text-align:center;}
+@media(hover:none){.hint.kb{display:none;}}
+
+/* ── SIDE PANEL ── */
+.side{display:flex;flex-direction:column;gap:8px;}
+
+/* AI picker */
+.ai-section{background:linear-gradient(145deg,#111130,#0a0a1e);border:1px solid #1e1e44;border-radius:12px;overflow:hidden;}
+.section-hdr{padding:9px 13px 7px;border-bottom:1px solid #1a1a3a;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text2);}
+.ai-list{padding:8px;}
+.ai-row{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:9px;cursor:pointer;border:1px solid transparent;transition:all .16s ease;margin-bottom:4px;}
+.ai-row:last-child{margin-bottom:0;}
+.ai-row:hover{background:rgba(255,255,255,.04);border-color:#222244;}
+.ai-row.selected{background:linear-gradient(145deg,#1e1a30,#131020);border-color:rgba(245,166,35,.4);}
+.ai-ava{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.ai-name{font-size:12.5px;font-weight:700;color:var(--text);}
+.ai-stars{font-size:11px;letter-spacing:.5px;}
+.ai-desc{font-size:10.5px;color:var(--text2);line-height:1.3;}
+
+/* leaderboard */
+.lb-section{background:linear-gradient(145deg,#111130,#0a0a1e);border:1px solid #1e1e44;border-radius:12px;overflow:hidden;}
+.lb-list{padding:8px;max-height:200px;overflow-y:auto;}
+.lb-list::-webkit-scrollbar{width:3px;}
+.lb-list::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:2px;}
+.lb-row{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:7px;font-size:12px;}
+.lb-row:nth-child(odd){background:rgba(255,255,255,.025);}
+.lb-rank{width:18px;text-align:center;font-weight:700;font-size:11px;color:var(--text2);}
+.lb-rank.gold{color:var(--gold);}
+.lb-rank.silver{color:#a0b0c0;}
+.lb-rank.bronze{color:#c06020;}
+.lb-name{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lb-score{font-weight:700;color:var(--teal);font-size:12px;}
+.lb-you{color:var(--gold) !important;}
+
+/* invite */
+.invite-section{background:linear-gradient(145deg,#111130,#0a0a1e);border:1px solid #1e1e44;border-radius:12px;overflow:hidden;}
+.invite-body{padding:10px 12px;}
+.invite-link{width:100%;background:#0a0a20;border:1px solid #252550;border-radius:7px;padding:7px 10px;font-size:11px;color:var(--teal);font-family:monospace;word-break:break-all;cursor:pointer;transition:border-color .15s;}
+.invite-link:hover{border-color:var(--teal);}
+.invite-hint{font-size:11px;color:var(--text2);margin-top:5px;line-height:1.4;}
+.invite-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+
+/* chat */
+.chat-section{background:linear-gradient(145deg,#111130,#0a0a1e);border:1px solid #1e1e44;border-radius:12px;overflow:hidden;}
+.chat-msgs{overflow-y:auto;padding:7px 10px;display:flex;flex-direction:column;gap:5px;}
+.chat-msgs::-webkit-scrollbar{width:3px;}
+.chat-msgs::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:2px;}
+.chat-msg{display:flex;flex-direction:column;gap:1px;animation:fadeUp .2s ease;max-width:100%;}
+.chat-msg.self{align-self:flex-end;}
+.chat-msg.other{align-self:flex-start;}
+.chat-msg.sys{align-self:center;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(3px);}to{opacity:1;}}
+.chat-bubble{padding:6px 10px;border-radius:9px;font-size:12px;line-height:1.45;word-break:break-word;max-width:200px;}
+.chat-msg.self .chat-bubble{background:linear-gradient(135deg,#2a1f50,#1a1238);border:1px solid rgba(145,100,220,.25);border-radius:9px 9px 2px 9px;color:#d8c8f8;}
+.chat-msg.other .chat-bubble{background:linear-gradient(135deg,#141830,#0e1228);border:1px solid #1e2240;border-radius:9px 9px 9px 2px;color:var(--text);}
+.chat-msg.sys .chat-bubble{background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.14);border-radius:7px;font-size:11px;color:var(--gold);text-align:center;padding:4px 10px;}
+.chat-msg.ai-c .chat-bubble{background:linear-gradient(135deg,#0d2030,#081525);border:1px solid rgba(0,200,240,.2);border-radius:9px 9px 9px 2px;color:#b0e0f0;}
+.chat-meta{display:flex;align-items:center;gap:5px;padding:0 3px;}
+.chat-msg.self .chat-meta{flex-direction:row-reverse;}
+.chat-avatar{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.chat-name{font-size:10px;color:var(--text2);font-weight:500;}
+.chat-time{font-size:9px;color:#30306050;}
+.chat-inp{flex:1;background:#0a0a20;border:1px solid #252550;border-radius:7px;padding:6px 9px;font-size:12.5px;color:var(--text);font-family:inherit;outline:none;}
+.chat-inp:focus{border-color:rgba(100,80,200,.5);box-shadow:0 0 0 2px rgba(100,80,200,.1);}
+.chat-send{padding:7px 12px;border-radius:7px;background:linear-gradient(135deg,#4030a0,#2a1870);border:none;color:#c0b0f0;cursor:pointer;font-size:14px;box-shadow:0 2px 8px rgba(60,30,160,.35);transition:all .15s;}
+.chat-send:hover{background:linear-gradient(135deg,#5040c0,#3a2890);transform:scale(1.05);}
+.chat-send:active{transform:scale(.96);}
+/* quick reaction */
+.qr{padding:3px 7px;border-radius:12px;font-size:10.5px;cursor:pointer;border:1px solid #222244;color:var(--text2);background:#111128;transition:all .14s;}
+.qr:hover{border-color:rgba(245,166,35,.4);color:var(--gold);transform:scale(1.06);}
+/* typing dots */
+.tdot{width:5px;height:5px;border-radius:50%;background:var(--teal);animation:tdot .9s infinite;}
+@keyframes tdot{0%,80%,100%{opacity:.25;transform:scale(.8);}40%{opacity:1;transform:scale(1.1);}}
+/* online chip */
+.online-chip{padding:2px 7px;border-radius:12px;font-size:10px;background:#111128;border:1px solid #222244;color:var(--text2);white-space:nowrap;}
+@keyframes chatPulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* AI comment toast */
+.ai-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:linear-gradient(135deg,#0d2030,#081525);border:1px solid rgba(0,200,240,.3);border-radius:12px;padding:10px 16px;font-size:12.5px;color:#b0e0f0;max-width:300px;text-align:center;z-index:50;transition:transform .4s ease,opacity .4s ease;opacity:0;}
+.ai-toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="game-title">金剛爬塔 <sub>KONG CLIMBER</sub></div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+    <button class="btn btn-gold" onclick="showInvite()">🔗 邀請好友</button>
+    <button class="btn" onclick="startGame()">▶ 開始</button>
+  </div>
+</header>
+
+<div class="main" id="mainLayout">
+  <!-- GAME SIDE -->
+  <div class="game-area">
+    <!-- HUD -->
+    <div class="hud">
+      <div class="hud-block">
+        <div class="hud-val" style="color:var(--gold)" id="scoreVal">0</div>
+        <div class="hud-label">分數</div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-val" style="color:var(--teal)" id="hiVal">0</div>
+        <div class="hud-label">最高分</div>
+      </div>
+      <div class="hud-block">
+        <div class="lives-row" id="livesRow">
+          <span class="life-icon">❤️</span><span class="life-icon">❤️</span><span class="life-icon">❤️</span>
+        </div>
+        <div class="hud-label">生命</div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-val" style="color:var(--green)" id="levelVal">1</div>
+        <div class="hud-label">關卡</div>
+      </div>
+    </div>
+
+    <!-- Mode selector + status bar -->
+    <div style="width:100%;display:flex;flex-direction:column;gap:6px;">
+
+      <!-- Mode toggle tabs -->
+      <div style="display:flex;gap:6px;background:rgba(10,10,30,.8);border:1px solid #1e1e44;border-radius:10px;padding:5px;">
+        <button id="modeSolo" onclick="setMode('solo')"
+          style="flex:1;padding:8px;border-radius:7px;border:none;cursor:pointer;font-size:12.5px;font-weight:700;letter-spacing:.3px;transition:all .18s;background:linear-gradient(135deg,#4030a0,#2a1870);color:#fff;box-shadow:0 2px 10px rgba(60,30,160,.4);">
+          🎮 單人模式
+        </button>
+        <button id="modeVS" onclick="setMode('vs')"
+          style="flex:1;padding:8px;border-radius:7px;border:none;cursor:pointer;font-size:12.5px;font-weight:700;letter-spacing:.3px;transition:all .18s;background:transparent;color:var(--text2);">
+          🤖 AI 對戰
+        </button>
+      </div>
+
+      <!-- Mode description + start button -->
+      <div id="modeBar" style="display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,rgba(14,14,40,.9),rgba(8,8,28,.9));border:1px solid #1e1e44;border-radius:10px;padding:8px 12px;">
+        <!-- Left: player score -->
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:50px;">
+          <div style="font-size:9px;color:#ff6080;font-weight:700;letter-spacing:.5px;">👤 玩家</div>
+          <div style="font-size:16px;font-weight:800;color:var(--gold);" id="scoreValVS">0</div>
+          <div style="font-size:9px;color:var(--text2);">分數</div>
+        </div>
+        <!-- Center: big start button -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <button onclick="startGame()" id="mainStartBtn"
+            style="width:100%;padding:9px 10px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:800;letter-spacing:.5px;color:#fff;background:linear-gradient(135deg,#e94560,#8e1830);box-shadow:0 4px 16px rgba(233,69,96,.45),inset 0 1px 0 rgba(255,255,255,.12);transition:all .17s;">
+            ▶ 單人開始
+          </button>
+          <div style="font-size:10px;color:#3a3a68;" id="modeDesc">只有你和金剛，專心爬塔！</div>
+        </div>
+        <!-- Right: AI score (hidden in solo) -->
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:50px;" id="aiScoreCol">
+          <div style="font-size:9px;color:var(--teal);font-weight:700;letter-spacing:.5px;">🤖 <span id="aiNameDisp">AI</span></div>
+          <div style="font-size:16px;font-weight:800;color:var(--teal);" id="aiScoreDisp">0</div>
+          <div style="display:flex;align-items:center;gap:3px;">
+            <div id="aiStatusDot" style="width:6px;height:6px;border-radius:50%;background:#3a3a68;"></div>
+            <div style="font-size:9px;color:var(--text2);" id="aiStatusTxt">等待</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI progress bar (hidden in solo) -->
+      <div id="aiProgressRow" style="width:100%;height:3px;border-radius:2px;background:#1a1a38;overflow:hidden;display:none;">
+        <div style="height:100%;border-radius:2px;background:linear-gradient(90deg,var(--teal),#0860a0);width:0%;transition:width .2s;" id="aiProgressBar"></div>
+      </div>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="gameCanvas"></canvas>
+
+      <!-- START overlay -->
+      <div class="overlay ov-bg-dark show" id="startOv">
+        <div class="ov-emoji">🦍</div>
+        <div class="ov-title gold">金剛爬塔</div>
+        <div class="ov-sub" id="startOvSub">躲避滾桶，爬上頂端救出公主！</div>
+        <!-- Mode choice inside overlay -->
+        <div style="display:flex;gap:8px;margin:4px 0;">
+          <button onclick="setMode('solo');startGame();"
+            style="padding:11px 22px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:800;color:#fff;background:linear-gradient(135deg,#4030a0,#2a1870);box-shadow:0 4px 18px rgba(60,30,160,.4);letter-spacing:.5px;transition:all .17s;"
+            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            🎮 單人遊戲
+          </button>
+          <button onclick="setMode('vs');startGame();"
+            style="padding:11px 22px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:800;color:#fff;background:linear-gradient(135deg,#e94560,#8e1830);box-shadow:0 4px 18px rgba(233,69,96,.4);letter-spacing:.5px;transition:all .17s;"
+            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            🤖 AI 對戰
+          </button>
+        </div>
+        <button class="btn btn-gold" style="font-size:12px;" onclick="showInvite()">🔗 邀請好友對戰</button>
+      </div>
+
+      <!-- DEAD overlay -->
+      <div class="overlay ov-bg-dark" id="deadOv">
+        <div class="ov-emoji">💥</div>
+        <div class="ov-title red">被擊中了！</div>
+        <div class="ov-sub" id="deadSub"></div>
+        <div class="ov-btns">
+          <button class="btn btn-red" onclick="respawn()">繼續 ▶</button>
+          <button class="btn" onclick="startGame()">重新開始</button>
+        </div>
+      </div>
+
+      <!-- WIN overlay -->
+      <div class="overlay ov-bg-dark" id="winOv">
+        <div class="ov-emoji">🏆</div>
+        <div class="ov-title gold">恭喜過關！</div>
+        <div class="ov-sub" id="winSub"></div>
+        <div class="ov-btns">
+          <button class="btn btn-green" onclick="nextLevel()">下一關 →</button>
+          <button class="btn" onclick="startGame()">重新開始</button>
+        </div>
+      </div>
+
+      <!-- GAMEOVER overlay -->
+      <div class="overlay ov-bg-dark" id="gameoverOv">
+        <div class="ov-emoji">💀</div>
+        <div class="ov-title red">遊戲結束</div>
+        <div class="ov-sub" id="gameoverSub"></div>
+        <div class="ov-btns">
+          <button class="btn btn-red" onclick="startGame()">再玩一次</button>
+        </div>
+      </div>
+
+      <!-- INVITE overlay -->
+      <div class="overlay ov-bg-dark" id="inviteOv">
+        <div class="ov-emoji">🔗</div>
+        <div class="ov-title teal">邀請好友對戰</div>
+        <div id="inviteLinkDisp" style="font-size:11px;color:var(--teal);font-family:monospace;word-break:break-all;max-width:260px;text-align:center;padding:8px;background:rgba(0,200,240,.06);border:1px solid rgba(0,200,240,.2);border-radius:8px;cursor:pointer;" onclick="copyInvite()"></div>
+        <div style="font-size:11px;color:var(--text2);text-align:center;">點擊連結複製，分享給朋友！</div>
+        <div class="ov-btns">
+          <button class="btn btn-green" onclick="copyInvite()">📋 複製連結</button>
+          <button class="btn" onclick="closeInvite()">關閉</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- D-pad -->
+    <div class="dpad-area">
+      <div class="dpad-wrap">
+        <div class="dpad">
+          <button class="dpad-btn up" id="dUp" onpointerdown="keyDown('up')" onpointerup="keyUp('up')">▲</button>
+          <button class="dpad-btn left" id="dLeft" onpointerdown="keyDown('left')" onpointerup="keyUp('left')">◀</button>
+          <button class="dpad-btn right" id="dRight" onpointerdown="keyDown('right')" onpointerup="keyUp('right')">▶</button>
+        </div>
+      </div>
+      <button class="jump-btn" id="jumpBtn" onpointerdown="keyDown('jump')" onpointerup="keyUp('jump')">🦘<br><span style="font-size:9px;display:block;margin-top:1px;">跳</span></button>
+    </div>
+    <div class="hint kb">← → 移動 · ↑/空白 跳躍</div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side" id="sidePanel">
+    <!-- AI selection -->
+    <div class="ai-section">
+      <div class="section-hdr">🤖 AI 對手等級</div>
+      <div class="ai-list" id="aiList"></div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="lb-section">
+      <div class="section-hdr">🏆 排行榜</div>
+      <div class="lb-list" id="lbList"><div style="font-size:11px;color:var(--text2);padding:8px;">載入中…</div></div>
+    </div>
+
+    <!-- Invite -->
+    <div class="invite-section">
+      <div class="section-hdr">🔗 邀請好友</div>
+      <div class="invite-body">
+        <div class="invite-link" id="inviteLinkSide" onclick="copyInvite()">生成連結中…</div>
+        <div class="invite-hint">把連結傳給朋友，可以看到彼此的即時分數！</div>
+        <div class="invite-actions">
+          <button class="btn btn-green" style="font-size:11.5px;padding:7px 12px;" onclick="copyInvite()">📋 複製</button>
+          <button class="btn" style="font-size:11.5px;padding:7px 12px;" onclick="shareInvite()">📤 分享</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Room (full) -->
+    <div class="chat-section" id="chatSection">
+      <!-- Header: title + online dot + AI评论 button -->
+      <div style="padding:9px 13px 7px;border-bottom:1px solid #1a1a3a;display:flex;align-items:center;justify-content:space-between;gap:6px;">
+        <div style="display:flex;align-items:center;gap:7px;">
+          <div id="chatOnlineDot" style="width:7px;height:7px;border-radius:50%;background:#3a3a68;flex-shrink:0;"></div>
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text2);">💬 遊戲聊天室</div>
+            <div style="font-size:10px;color:#3a3a68;" id="chatOnlineTxt">連線中…</div>
+          </div>
+        </div>
+        <button onclick="requestAIComment()" style="padding:3px 9px;border-radius:7px;border:1px solid rgba(0,200,240,.3);background:rgba(0,200,240,.06);color:var(--teal);font-size:10.5px;cursor:pointer;white-space:nowrap;">🤖 求評語</button>
+      </div>
+      <!-- Online players list -->
+      <div id="onlineList" style="display:flex;gap:5px;flex-wrap:wrap;padding:5px 10px 2px;min-height:0;"></div>
+      <!-- Messages -->
+      <div class="chat-msgs" id="chatMsgs" style="height:160px;">
+        <div class="chat-msg sys">🎮 歡迎來到金剛爬塔聊天室！邀請朋友一起玩！</div>
+      </div>
+      <!-- Typing indicator -->
+      <div id="typingInd" style="display:none;padding:2px 12px 1px;">
+        <div style="display:flex;gap:3px;align-items:center;padding:5px 10px;background:linear-gradient(135deg,#0d2030,#081525);border:1px solid rgba(0,200,240,.18);border-radius:9px;width:fit-content;">
+          <div class="tdot"></div><div class="tdot" style="animation-delay:.18s"></div><div class="tdot" style="animation-delay:.36s"></div>
+        </div>
+      </div>
+      <!-- Quick reactions -->
+      <div style="display:flex;gap:4px;padding:5px 10px;border-top:1px solid #1a1a3a;flex-wrap:wrap;">
+        <span style="font-size:10px;color:var(--text2);align-self:center;white-space:nowrap;">快捷：</span>
+        <button class="qr" onclick="quickChat('🔥 超猛！')">🔥猛</button>
+        <button class="qr" onclick="quickChat('😅 好難…')">😅難</button>
+        <button class="qr" onclick="quickChat('🏆 我過關了！')">🏆過關</button>
+        <button class="qr" onclick="quickChat('💀 被打中了！')">💀死了</button>
+        <button class="qr" onclick="quickChat('🤖 AI好快！')">🤖AI快</button>
+        <button class="qr" onclick="quickChat('👍 加油！')">👍加油</button>
+      </div>
+      <!-- Nick row -->
+      <div style="display:flex;align-items:center;gap:6px;padding:5px 10px;border-top:1px solid #1a1a3a;">
+        <span style="font-size:10px;color:var(--text2);flex-shrink:0;">暱稱：</span>
+        <input id="nickInp" maxlength="12" placeholder="輸入暱稱…"
+          style="flex:1;background:#0a0a20;border:1px solid #252550;border-radius:7px;padding:5px 8px;font-size:12px;color:var(--text);font-family:inherit;outline:none;">
+      </div>
+      <!-- Input row -->
+      <div style="display:flex;gap:6px;padding:7px 10px 9px;border-top:1px solid #1a1a3a;">
+        <input class="chat-inp" id="chatInp" placeholder="說點什麼…" maxlength="80">
+        <button class="chat-send" id="sendBtn" onclick="sendChat()">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="aiToast" class="ai-toast">🤖 AI解說</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  AI CONFIGS
+// ═══════════════════════════════════════════
+const AI_LEVELS=[
+  {id:'sleepy', name:'瞌睡蟲',  emoji:'😴',desc:'動作遲緩，常被桶子打中', stars:'★☆☆☆☆',color:'#8060a0',
+   speedMul:.35,jumpChance:.3,mistakeRate:.6,scorePerSec:8},
+  {id:'rookie', name:'新手小明',emoji:'🐣',desc:'偶爾失誤，穩定度不足',   stars:'★★☆☆☆',color:'#50a070',
+   speedMul:.55,jumpChance:.5,mistakeRate:.35,scorePerSec:18},
+  {id:'stable', name:'穩健玩家',emoji:'🧑',desc:'反應合理，有一定挑戰性', stars:'★★★☆☆',color:'#4080c0',
+   speedMul:.75,jumpChance:.68,mistakeRate:.15,scorePerSec:30},
+  {id:'smart',  name:'老練高手',emoji:'🦊',desc:'快速反應，很少被擊中',   stars:'★★★★☆',color:'#c06020',
+   speedMul:.88,jumpChance:.85,mistakeRate:.05,scorePerSec:45},
+  {id:'master', name:'爬塔大師',emoji:'🤖',desc:'幾乎完美，速度極快',     stars:'★★★★★',color:'#e94560',
+   speedMul:1.0,jumpChance:.97,mistakeRate:.01,scorePerSec:65},
+];
+let selectedAI=AI_LEVELS[2];
+
+// ═══════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+
+const COLS=14,ROWS=14;
+function cellW(){return Math.floor(Math.min(window.innerWidth-20,460)/COLS);}
+function cellH(){return Math.round(cellW()*1.1);}
+function setupCanvas(){canvas.width=COLS*cellW();canvas.height=ROWS*cellH();}
+window.addEventListener('resize',()=>{setupCanvas();draw();});
+
+// ═══════════════════════════════════════════
+//  GAME CONSTANTS & STATE
+// ═══════════════════════════════════════════
+const GRAVITY=0.5;
+const BARREL_SPEED_BASE=2.2;
+
+let state='start'; // start|playing|dead|win|gameover
+let score=0,hiScore=0,lives=3,level=1;
+let frames=0;
+
+// Player
+let player={x:0,y:0,vx:0,vy:0,w:28,h:36,onGround:false,dir:1,jumping:false,climbing:false,animFrame:0};
+// Kong
+let kong={x:0,y:0,w:48,h:48,animFrame:0,throwTimer:0};
+// Princess
+let princess={x:0,y:0};
+// Barrels
+let barrels=[];
+// Ladders
+let ladders=[];
+// Platforms
+let platforms=[];
+// Flames
+let flames=[];
+
+// AI ghost
+let aiGhost={x:0,y:0,score:0,progress:0,animFrame:0,alive:true};
+
+// Keys
+const keys={left:false,right:false,jump:false,up:false};
+let jumpPressed=false;
+
+// ═══════════════════════════════════════════
+//  LEVEL LAYOUTS
+// ═══════════════════════════════════════════
+function buildLevel(lvl){
+  const CW=cellW(),CH=cellH();
+  const W=canvas.width,H=canvas.height;
+  platforms=[];ladders=[];barrels=[];flames=[];
+
+  // Always have floor
+  platforms.push({x:0,y:H-CH,w:W,h:8,color:'#4040a0'});
+
+  if(lvl===1){
+    // Classic DK layout – 4 platforms, alternating slopes
+    const pData=[
+      {y:H-CH*1,x:0,w:W},
+      {y:H-CH*4,x:0,w:W*0.85},
+      {y:H-CH*7,x:W*0.15,w:W*0.85},
+      {y:H-CH*10,x:0,w:W*0.85},
+      {y:H-CH*13,x:W*0.1,w:W*0.9},
+    ];
+    pData.forEach((p,i)=>{
+      platforms.push({x:p.x,y:p.y,w:p.w,h:8,color:i%2===0?'#4040a0':'#504090'});
+    });
+    // Ladders connecting platforms
+    ladders.push({x:W*0.12,y:H-CH*4,h:CH*3});
+    ladders.push({x:W*0.78,y:H-CH*7,h:CH*3});
+    ladders.push({x:W*0.22,y:H-CH*10,h:CH*3});
+    ladders.push({x:W*0.72,y:H-CH*13,h:CH*3});
+    // Kong at top
+    kong.x=W*0.1+8;kong.y=H-CH*13-kong.h+2;
+    // Princess
+    princess.x=W*0.78;princess.y=H-CH*13-32;
+    // Player start
+    player.x=16;player.y=H-CH-player.h;
+  } else if(lvl===2){
+    const pData=[
+      {y:H-CH,x:0,w:W},
+      {y:H-CH*3.5,x:0,w:W*0.6},
+      {y:H-CH*3.5,x:W*0.72,w:W*0.28},
+      {y:H-CH*6.5,x:W*0.3,w:W*0.7},
+      {y:H-CH*9.5,x:0,w:W*0.65},
+      {y:H-CH*12.5,x:W*0.15,w:W*0.85},
+    ];
+    pData.forEach((p,i)=>platforms.push({x:p.x,y:p.y,w:p.w,h:8,color:i%2===0?'#4050a0':'#405080'}));
+    ladders.push({x:W*0.55,y:H-CH*3.5,h:CH*2.5},{x:W*0.35,y:H-CH*6.5,h:CH*3},{x:W*0.6,y:H-CH*9.5,h:CH*3},{x:W*0.2,y:H-CH*12.5,h:CH*3});
+    kong.x=W*0.15+8;kong.y=H-CH*12.5-kong.h+2;
+    princess.x=W*0.78;princess.y=H-CH*12.5-32;
+    player.x=16;player.y=H-CH-player.h;
+    // Extra flames
+    flames.push({x:W*0.4,y:H-CH-20,vx:1.2,animFrame:0},{x:W*0.65,y:H-CH-20,vx:-1.5,animFrame:0});
+  } else {
+    // Level 3+ – more complex
+    const pData=[
+      {y:H-CH,x:0,w:W},
+      {y:H-CH*3,x:0,w:W*0.45},
+      {y:H-CH*3,x:W*0.55,w:W*0.45},
+      {y:H-CH*6,x:W*0.2,w:W*0.6},
+      {y:H-CH*9,x:0,w:W*0.5},
+      {y:H-CH*9,x:W*0.6,w:W*0.4},
+      {y:H-CH*12,x:0,w:W},
+    ];
+    pData.forEach((p,i)=>platforms.push({x:p.x,y:p.y,w:p.w,h:8,color:i%2===0?'#504090':'#404090'}));
+    ladders.push({x:W*0.4,y:H-CH*3,h:CH*2},{x:W*0.22,y:H-CH*6,h:CH*3},{x:W*0.65,y:H-CH*9,h:CH*3},{x:W*0.5,y:H-CH*12,h:CH*3});
+    kong.x=W*0.08;kong.y=H-CH*12-kong.h+2;
+    princess.x=W*0.82;princess.y=H-CH*12-32;
+    player.x=16;player.y=H-CH-player.h;
+    flames.push({x:W*0.3,y:H-CH-20,vx:1.5,animFrame:0},{x:W*0.7,y:H-CH-20,vx:-1.8,animFrame:0},{x:W*0.5,y:H-CH*3-20,vx:1.2,animFrame:0});
+  }
+
+  // Reset AI — will be called after player start pos is set
+  setTimeout(resetAI,0);
+}
+
+// ═══════════════════════════════════════════
+//  MODE MANAGEMENT
+// ═══════════════════════════════════════════
+let soloMode=true; // default: solo
+
+function setMode(mode){
+  soloMode=(mode==='solo');
+  // Tab styles
+  const s=document.getElementById('modeSolo');
+  const v=document.getElementById('modeVS');
+  const aiCol=document.getElementById('aiScoreCol');
+  const aiRow=document.getElementById('aiProgressRow');
+  const btn=document.getElementById('mainStartBtn');
+  const desc=document.getElementById('modeDesc');
+  if(soloMode){
+    s.style.background='linear-gradient(135deg,#4030a0,#2a1870)';
+    s.style.color='#fff';
+    s.style.boxShadow='0 2px 10px rgba(60,30,160,.4)';
+    v.style.background='transparent';
+    v.style.color='var(--text2)';
+    v.style.boxShadow='none';
+    aiCol.style.display='none';
+    aiRow.style.display='none';
+    btn.textContent='▶ 單人開始';
+    btn.style.background='linear-gradient(135deg,#4030a0,#2a1870)';
+    btn.style.boxShadow='0 4px 16px rgba(60,30,160,.4)';
+    desc.textContent='只有你和金剛，專心爬塔！';
+  } else {
+    v.style.background='linear-gradient(135deg,#e94560,#8e1830)';
+    v.style.color='#fff';
+    v.style.boxShadow='0 2px 10px rgba(233,69,96,.4)';
+    s.style.background='transparent';
+    s.style.color='var(--text2)';
+    s.style.boxShadow='none';
+    aiCol.style.display='flex';
+    aiRow.style.display='block';
+    btn.textContent='▶ AI 對戰開始';
+    btn.style.background='linear-gradient(135deg,#e94560,#8e1830)';
+    btn.style.boxShadow='0 4px 16px rgba(233,69,96,.4)';
+    desc.textContent='和 AI 競速，誰先到頂？';
+  }
+}
+
+// ═══════════════════════════════════════════
+//  GAME LOGIC
+// ═══════════════════════════════════════════
+function startGame(){
+  score=0;lives=3;level=1;state='playing';
+  setupCanvas();buildLevel(1);
+  hideAllOverlays();
+  updateHUD();
+  aiState.score=0; aiGhost.score=0;
+  if(!loopRunning) gameLoop();
+}
+
+function respawn(){
+  if(lives<=0){showGameOver();return;}
+  player.x=16;player.y=canvas.height-cellH()-player.h;
+  player.vx=0;player.vy=0;player.onGround=false;
+  barrels=barrels.filter(_=>false);
+  state='playing';
+  hideAllOverlays();
+}
+
+function nextLevel(){
+  level++;
+  if(level>3)level=3; // cap at 3, increase difficulty differently
+  setupCanvas();buildLevel(level);
+  state='playing';
+  hideAllOverlays();
+  score+=500*(level-1);
+  updateHUD();
+}
+
+// Platform collision
+function onPlatform(px,py,pw,ph){
+  for(const p of platforms){
+    if(px+pw>p.x && px<p.x+p.w && py+ph>=p.y && py+ph<=p.y+10 && player.vy>=0){
+      return p;
+    }
+  }
+  return null;
+}
+function onLadder(px,py,pw,ph){
+  for(const l of ladders){
+    if(px+pw*0.5>l.x-10 && px+pw*0.5<l.x+22 && py+ph>l.y && py<l.y+l.h) return l;
+  }
+  return null;
+}
+
+function updatePlayer(){
+  if(state!=='playing') return;
+  const CW=cellW(),CH=cellH();
+
+  // Horizontal
+  player.vx=0;
+  if(keys.left){player.vx=-3.5;player.dir=-1;}
+  if(keys.right){player.vx=3.5;player.dir=1;}
+
+  // Gravity
+  player.vy+=GRAVITY;
+
+  // Ladder
+  const lad=onLadder(player.x,player.y,player.w,player.h);
+  if(lad&&keys.up){player.vy=-2.8;player.climbing=true;}
+  else player.climbing=false;
+
+  // Jump
+  if((keys.jump||keys.up)&&player.onGround&&!jumpPressed){
+    player.vy=-11;player.onGround=false;jumpPressed=true;
+  }
+  if(!keys.jump&&!keys.up) jumpPressed=false;
+
+  player.x+=player.vx;
+  player.y+=player.vy;
+
+  // Boundaries
+  player.x=Math.max(0,Math.min(canvas.width-player.w,player.x));
+
+  // Platform collision
+  player.onGround=false;
+  for(const p of platforms){
+    if(player.x+player.w>p.x && player.x<p.x+p.w){
+      if(player.y+player.h>=p.y && player.y+player.h<=p.y+player.vy+10 && player.vy>=0){
+        player.y=p.y-player.h;
+        player.vy=0;
+        player.onGround=true;
+      }
+    }
+  }
+
+  // Fall off screen
+  if(player.y>canvas.height+50){ hitPlayer(); return; }
+
+  // Animate
+  frames++;
+  if(frames%8===0) player.animFrame=(player.animFrame+1)%4;
+
+  // Check win: reach princess
+  if(Math.abs(player.x-princess.x)<40 && Math.abs(player.y-princess.y)<50){
+    score+=1000;updateHUD();showWin();return;
+  }
+
+  // Barrel collision
+  for(const b of barrels){
+    if(Math.abs(player.x+player.w/2-(b.x+b.w/2))<20 && Math.abs(player.y+player.h/2-(b.y+b.h/2))<20){
+      hitPlayer();return;
+    }
+  }
+  // Flame collision
+  for(const f of flames){
+    if(Math.abs(player.x+14-f.x)<22 && Math.abs(player.y+18-f.y)<22){
+      hitPlayer();return;
+    }
+  }
+}
+
+function hitPlayer(){
+  lives--;
+  updateHUD();
+  if(lives<=0){showGameOver();state='gameover';}
+  else{state='dead';document.getElementById('deadSub').textContent=`剩餘 ${lives} 條命`;document.getElementById('deadOv').classList.add('show');}
+}
+
+// Barrels
+function updateBarrels(){
+  if(state!=='playing') return;
+  const CH=cellH();
+  kong.throwTimer++;
+  const interval=Math.max(60,120-level*20);
+  if(kong.throwTimer>=interval){
+    kong.throwTimer=0;
+    barrels.push({x:kong.x+kong.w,y:kong.y+kong.h*0.6,w:20,h:20,vx:BARREL_SPEED_BASE+level*.4,vy:0,animFrame:0,rolling:true});
+  }
+  for(let i=barrels.length-1;i>=0;i--){
+    const b=barrels[i];
+    b.vy+=GRAVITY*.7;
+    b.x+=b.vx*(Math.random()<.02*(level-1)?.5:1);
+    b.y+=b.vy;
+    // platform bounce
+    for(const p of platforms){
+      if(b.x+b.w>p.x&&b.x<p.x+p.w&&b.y+b.h>=p.y&&b.y+b.h<=p.y+15&&b.vy>=0){
+        b.y=p.y-b.h;b.vy=0;
+        // randomly flip on some levels
+        if(level>1&&Math.random()<.25) b.vx*=-1;
+      }
+    }
+    if(b.x<0||b.x>canvas.width+50||b.y>canvas.height+100) barrels.splice(i,1);
+    if(frames%4===0) b.animFrame=(b.animFrame+1)%4;
+  }
+}
+
+function updateFlames(){
+  for(const f of flames){
+    f.x+=f.vx;
+    if(f.x<0||f.x>canvas.width-20) f.vx*=-1;
+    if(frames%6===0) f.animFrame=(f.animFrame+1)%4;
+  }
+}
+
+// ═══════════════════════════════════════════
+//  REAL AI PHYSICS ENGINE
+// ═══════════════════════════════════════════
+// AI has its own vx/vy/onGround, uses same collision as player
+let aiState={
+  x:0,y:0,vx:0,vy:0,w:28,h:36,onGround:false,
+  dir:1,animFrame:0,score:0,lives:3,dead:false,
+  climbMode:false,         // currently climbing a ladder
+  targetLadder:null,       // ladder we're heading for
+  targetPlatformIdx:0,     // which platform level we're trying to reach
+  stuckTimer:0,            // detect when stuck and retry
+  lastX:0,lastY:0,
+  jumpCooldown:0,
+  thinkTimer:0,
+};
+
+function resetAI(){
+  aiState.x=player.x+50; aiState.y=player.y;
+  aiState.vx=0; aiState.vy=0; aiState.onGround=false;
+  aiState.score=0; aiState.lives=3; aiState.dead=false;
+  aiState.climbMode=false; aiState.targetLadder=null;
+  aiState.targetPlatformIdx=1; // start trying to reach platform index 1
+  aiState.stuckTimer=0; aiState.lastX=aiState.x; aiState.lastY=aiState.y;
+  aiState.jumpCooldown=0; aiState.thinkTimer=0;
+  aiGhost.alive=true; aiGhost.score=0;
+}
+
+// Which platform is the AI currently standing on? (index into platforms[])
+function aiCurrentPlatformIdx(){
+  for(let i=0;i<platforms.length;i++){
+    const p=platforms[i];
+    const foot=aiState.y+aiState.h;
+    if(aiState.x+aiState.w>p.x && aiState.x<p.x+p.w && Math.abs(foot-p.y)<6)
+      return i;
+  }
+  return -1;
+}
+
+// Best ladder to climb from current platform to reach a higher platform
+function bestLadderForAI(){
+  const curIdx=aiCurrentPlatformIdx();
+  if(curIdx<0) return null;
+  const curPlat=platforms[curIdx];
+  // find a ladder whose bottom is near our platform's y and whose top leads higher
+  let best=null, bestDist=Infinity;
+  for(const l of ladders){
+    const ladBottom=l.y+l.h;
+    // ladder bottom is on or just above our platform
+    if(Math.abs(ladBottom-curPlat.y)<cellH()*1.5){
+      const dist=Math.abs((l.x+9)-(aiState.x+aiState.w/2));
+      if(dist<bestDist){bestDist=dist;best=l;}
+    }
+  }
+  return best;
+}
+
+// Is a barrel dangerous for AI? Returns true if too close and coming toward AI
+function barrelDanger(){
+  for(const b of barrels){
+    const dx=b.x-(aiState.x+aiState.w/2);
+    const dy=Math.abs(b.y-(aiState.y+aiState.h/2));
+    // same platform level, within danger zone
+    if(dy<cellH()*1.2 && Math.abs(dx)<90){
+      // approaching from the direction AI is facing or very close
+      if(Math.abs(dx)<44) return {close:true,side:dx>0?1:-1};
+      if((dx>0&&b.vx<0)||(dx<0&&b.vx>0)) return {close:false,side:dx>0?1:-1};
+    }
+  }
+  return null;
+}
+
+function updateAI(){
+  if(soloMode||!aiGhost.alive||aiState.dead) return;
+  const ai=selectedAI;
+  const spd=3.0*ai.speedMul;
+
+  // ── THINK every N frames based on AI speed ──
+  aiState.thinkTimer++;
+  const thinkRate=Math.round(2+6*(1-ai.speedMul)); // faster AI thinks more often
+  const shouldThink=(aiState.thinkTimer%thinkRate===0);
+
+  // ── GRAVITY ──
+  if(!aiState.climbMode) aiState.vy+=GRAVITY;
+  aiState.jumpCooldown=Math.max(0,aiState.jumpCooldown-1);
+
+  // ── FIND TARGET LADDER ──
+  if(shouldThink){
+    const danger=barrelDanger();
+    if(danger){
+      // DODGE: jump over barrel if close, or move away
+      if(danger.close&&aiState.onGround&&aiState.jumpCooldown===0&&Math.random()<ai.jumpChance){
+        aiState.vy=-10; aiState.onGround=false; aiState.jumpCooldown=25;
+      } else {
+        // move away from barrel
+        aiState.vx=-danger.side*spd*(Math.random()<ai.mistakeRate?-1:1);
+        aiState.dir=aiState.vx>0?1:-1;
+      }
+    } else {
+      // NAVIGATE: find nearest ladder and climb
+      const lad=bestLadderForAI();
+      if(lad&&!aiState.climbMode){
+        aiState.targetLadder=lad;
+        const ladCenterX=lad.x+9;
+        const dist=ladCenterX-(aiState.x+aiState.w/2);
+        if(Math.abs(dist)<8){
+          // aligned — start climbing
+          if(Math.random()<ai.jumpChance||(ai.mistakeRate<0.1)){
+            aiState.climbMode=true;
+            aiState.vx=0;
+          }
+        } else {
+          // walk toward ladder
+          const moveDir=dist>0?1:-1;
+          aiState.vx=moveDir*spd*(Math.random()<ai.mistakeRate?0:1);
+          aiState.dir=moveDir;
+        }
+      } else if(!lad){
+        // No ladder from here — walk toward princess direction
+        const dx=princess.x-(aiState.x+aiState.w/2);
+        aiState.vx=(dx>0?1:-1)*spd;
+        aiState.dir=dx>0?1:-1;
+      }
+    }
+  }
+
+  // ── CLIMBING MODE ──
+  if(aiState.climbMode&&aiState.targetLadder){
+    const lad=aiState.targetLadder;
+    const ladCenterX=lad.x+9;
+    // keep centered on ladder
+    aiState.x+=(ladCenterX-(aiState.x+aiState.w/2))*.3;
+    aiState.vx=0;
+    aiState.vy=-2.5*ai.speedMul; // climb up
+    aiState.onGround=false;
+    // reached top of ladder?
+    if(aiState.y<=lad.y-aiState.h+8){
+      aiState.climbMode=false;
+      aiState.targetLadder=null;
+      aiState.vy=-3; // small hop off top
+      aiState.jumpCooldown=20;
+    }
+    // mistake: sometimes fall off
+    if(Math.random()<ai.mistakeRate*0.3){
+      aiState.climbMode=false;
+      aiState.targetLadder=null;
+    }
+  }
+
+  // ── APPLY MOVEMENT ──
+  aiState.x+=aiState.vx;
+  aiState.y+=aiState.vy;
+  aiState.x=Math.max(0,Math.min(canvas.width-aiState.w,aiState.x));
+
+  // ── PLATFORM COLLISION ──
+  aiState.onGround=false;
+  for(const p of platforms){
+    if(aiState.x+aiState.w>p.x && aiState.x<p.x+p.w){
+      if(aiState.y+aiState.h>=p.y && aiState.y+aiState.h<=p.y+aiState.vy+12 && aiState.vy>=0){
+        aiState.y=p.y-aiState.h;
+        aiState.vy=0;
+        aiState.onGround=true;
+        aiState.climbMode=false;
+      }
+    }
+  }
+
+  // ── FALL OFF SCREEN ──
+  if(aiState.y>canvas.height+40){
+    aiState.lives--;
+    if(aiState.lives<=0){
+      aiState.dead=true; aiGhost.alive=false;
+      showToast(`💀 ${ai.name} 被淘汰了！`);
+      return;
+    }
+    aiState.x=50; aiState.y=canvas.height-cellH()-aiState.h;
+    aiState.vy=0; aiState.climbMode=false;
+    showToast(`💥 ${ai.name} 被擊中！還剩 ${aiState.lives} 命`);
+  }
+
+  // ── BARREL HIT ──
+  for(const b of barrels){
+    if(Math.abs(aiState.x+aiState.w/2-(b.x+b.w/2))<20 && Math.abs(aiState.y+aiState.h/2-(b.y+b.h/2))<20){
+      aiState.lives--;
+      if(aiState.lives<=0){
+        aiState.dead=true; aiGhost.alive=false;
+        showToast(`🏆 你幹掉了 ${ai.name}！繼續加油！`);
+      } else {
+        aiState.x=50; aiState.y=canvas.height-cellH()-aiState.h;
+        aiState.vy=0; aiState.climbMode=false;
+        aiState.vx=0;
+        showToast(`💥 ${ai.name} 被桶子打中了！`);
+      }
+      break;
+    }
+  }
+
+  // ── STUCK DETECTION ──
+  aiState.stuckTimer++;
+  if(aiState.stuckTimer%80===0){
+    if(Math.abs(aiState.x-aiState.lastX)<5&&Math.abs(aiState.y-aiState.lastY)<5){
+      // AI is stuck — jump or change direction
+      if(aiState.onGround&&aiState.jumpCooldown===0){
+        aiState.vy=-10; aiState.onGround=false; aiState.jumpCooldown=25;
+      }
+      aiState.vx=aiState.vx>0?-spd:spd; aiState.dir=aiState.vx>0?1:-1;
+      aiState.climbMode=false; aiState.targetLadder=null;
+    }
+    aiState.lastX=aiState.x; aiState.lastY=aiState.y;
+  }
+
+  // ── SCORE based on height ──
+  const topY=platforms[platforms.length-1]?.y||0;
+  const pct=Math.max(0,Math.min(1,1-(aiState.y-topY)/(canvas.height-topY)));
+  aiState.score+=ai.scorePerSec/60*(0.5+pct*.5);
+  aiGhost.score=aiState.score;
+  document.getElementById('aiScoreDisp').textContent=Math.floor(aiState.score);
+  document.getElementById('aiProgressBar').style.width=Math.round(pct*100)+'%';
+  if(frames%30===0) updateAIStatus();
+
+  if(frames%8===0) aiState.animFrame=(aiState.animFrame+1)%4;
+
+  // ── WIN CHECK ──
+  if(Math.abs(aiState.x-princess.x)<44&&Math.abs(aiState.y-princess.y)<52&&state==='playing'){
+    aiGhost.alive=false;
+    showToast(`🤖 ${ai.name} 率先救到公主！加油追！`);
+  }
+}
+
+// Player score
+let scoreTimer=0;
+function updateScore(){
+  if(state!=='playing') return;
+  scoreTimer++;
+  if(scoreTimer%60===0){
+    score+=10*(level);
+    if(score>hiScore){hiScore=score;saveHiScore();}
+    updateHUD();
+  }
+  // bonus for height
+  const topPlatY=platforms[platforms.length-1]?.y||0;
+  const h=1-((player.y-topPlatY)/(canvas.height-topPlatY));
+  if(scoreTimer%15===0&&h>.1) score+=Math.floor(h*5);
+}
+
+// ═══════════════════════════════════════════
+//  DRAW
+// ═══════════════════════════════════════════
+function draw(){
+  const CW=cellW(),CH=cellH();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Background gradient
+  const bgG=ctx.createLinearGradient(0,0,0,canvas.height);
+  bgG.addColorStop(0,'#080818');bgG.addColorStop(1,'#141430');
+  ctx.fillStyle=bgG;ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Stars
+  ctx.fillStyle='rgba(255,255,255,.4)';
+  for(let i=0;i<30;i++){
+    const sx=(i*73+11)%canvas.width, sy=(i*47+7)%canvas.height;
+    ctx.fillRect(sx,sy,1,1);
+  }
+
+  // Platforms
+  for(const p of platforms){
+    const pg=ctx.createLinearGradient(p.x,p.y,p.x,p.y+p.h+8);
+    pg.addColorStop(0,'#5050a0');pg.addColorStop(1,'#303068');
+    ctx.fillStyle=pg;ctx.fillRect(p.x,p.y,p.w,p.h);
+    ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(p.x,p.y,p.w,2);
+    ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(p.x,p.y+p.h-2,p.w,2);
+  }
+
+  // Ladders
+  for(const l of ladders){
+    ctx.fillStyle='rgba(180,120,60,.7)';
+    ctx.fillRect(l.x,l.y,4,l.h);
+    ctx.fillRect(l.x+14,l.y,4,l.h);
+    for(let ry=l.y+8;ry<l.y+l.h;ry+=14){
+      ctx.fillStyle='rgba(220,160,80,.7)';
+      ctx.fillRect(l.x,ry,18,3);
+    }
+  }
+
+  // Barrels
+  for(const b of barrels){
+    const spin=(b.animFrame*(b.vx>0?1:-1));
+    ctx.save();ctx.translate(b.x+b.w/2,b.y+b.h/2);
+    ctx.rotate(spin*.4);
+    // barrel body
+    const bg=ctx.createRadialGradient(-2,-2,1,0,0,b.w*.55);
+    bg.addColorStop(0,'#c08040');bg.addColorStop(1,'#804020');
+    ctx.fillStyle=bg;
+    ctx.beginPath();ctx.ellipse(0,0,b.w*.5,b.h*.5,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#5a2a10';ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(0,0,b.w*.5,b.h*.5,0,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='rgba(255,180,100,.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(-b.w*.45,0);ctx.lineTo(b.w*.45,0);ctx.stroke();
+    ctx.restore();
+  }
+
+  // Flames
+  for(const f of flames){
+    const flameColors=['#ff4020','#ff8000','#ffcc00'];
+    const size=16+Math.sin(frames*.2+f.x)*.3;
+    flameColors.forEach((c,i)=>{
+      ctx.fillStyle=c;
+      ctx.beginPath();
+      const s=size*(1-i*.25);
+      ctx.ellipse(f.x,f.y-i*4,s*.5,s,0,0,Math.PI*2);ctx.fill();
+    });
+  }
+
+  // Princess
+  ctx.fillStyle='#ff80c0';
+  ctx.font=`${Math.round(CW*1.2)}px sans-serif`;
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('👸',princess.x+16,princess.y+8);
+
+  // Kong
+  kong.animFrame=(frames%16<8)?0:1;
+  ctx.font=`${Math.round(CW*1.6)}px sans-serif`;
+  ctx.fillText('🦍',kong.x+kong.w/2,kong.y+kong.h);
+
+  // AI character — real physics position
+  if(!soloMode && aiGhost.alive && !aiState.dead){
+    // shadow
+    ctx.fillStyle='rgba(0,200,240,.2)';
+    ctx.beginPath();
+    ctx.ellipse(aiState.x+aiState.w/2,aiState.y+aiState.h+2,aiState.w*.4,4,0,0,Math.PI*2);
+    ctx.fill();
+    // body
+    ctx.globalAlpha=.88;
+    ctx.font=`${Math.round(CW*1.0)}px sans-serif`;
+    ctx.textAlign='center';
+    ctx.save();
+    if(aiState.dir===-1){
+      ctx.scale(-1,1);
+      ctx.fillText('🤖',-(aiState.x+aiState.w/2),aiState.y+aiState.h);
+    } else {
+      ctx.fillText('🤖',aiState.x+aiState.w/2,aiState.y+aiState.h);
+    }
+    ctx.restore();
+    ctx.globalAlpha=1;
+    // name tag
+    ctx.fillStyle='rgba(0,200,240,.85)';
+    ctx.font='bold 9px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(selectedAI.name,aiState.x+aiState.w/2,aiState.y-3);
+    // AI lives dots
+    for(let i=0;i<aiState.lives;i++){
+      ctx.fillStyle='rgba(0,200,240,.7)';
+      ctx.beginPath();ctx.arc(aiState.x+aiState.w/2-8+i*8,aiState.y-13,3,0,Math.PI*2);ctx.fill();
+    }
+  }
+
+  // Player
+  ctx.textAlign='center';
+  const playerEmoji=player.onGround?(keys.left||keys.right?'🏃':'🧍'):'🤸';
+  ctx.font=`${Math.round(CW*1.0)}px sans-serif`;
+  ctx.save();
+  if(player.dir===-1){ctx.scale(-1,1);ctx.fillText(playerEmoji,-player.x-player.w/2,player.y+player.h);}
+  else{ctx.fillText(playerEmoji,player.x+player.w/2,player.y+player.h);}
+  ctx.restore();
+
+  // Score on canvas
+  ctx.fillStyle='rgba(255,255,255,.18)';
+  ctx.font='bold 11px monospace';
+  ctx.textAlign='left';
+  ctx.fillText(`分數: ${score}`,6,16);
+  ctx.textAlign='right';
+  ctx.fillStyle='rgba(0,200,240,.5)';
+  ctx.fillText(`AI: ${Math.floor(aiGhost.score)}`,canvas.width-6,16);
+}
+
+// ═══════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════
+let loopRunning=false;
+function gameLoop(){
+  loopRunning=true;
+  updatePlayer();
+  updateBarrels();
+  updateFlames();
+  updateAI();
+  updateScore();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════
+//  HUD & OVERLAYS
+// ═══════════════════════════════════════════
+function updateHUD(){
+  document.getElementById('scoreVal').textContent=score;
+  document.getElementById('scoreValVS').textContent=score;
+  document.getElementById('hiVal').textContent=hiScore;
+  document.getElementById('levelVal').textContent=level;
+  const lr=document.getElementById('livesRow');
+  lr.innerHTML='';
+  for(let i=0;i<lives;i++) lr.innerHTML+='<span class="life-icon">❤️</span>';
+  for(let i=lives;i<3;i++) lr.innerHTML+='<span class="life-icon" style="opacity:.2">❤️</span>';
+}
+function updateAIStatus(){
+  const dot=document.getElementById('aiStatusDot');
+  const txt=document.getElementById('aiStatusTxt');
+  if(!dot||!txt) return;
+  if(state!=='playing'){dot.style.background='#3a3a68';txt.textContent='等待開始';return;}
+  if(aiState.dead||!aiGhost.alive){dot.style.background='#e94560';txt.textContent='已淘汰 💀';return;}
+  dot.style.background='#06d6a0';
+  dot.style.boxShadow='0 0 6px rgba(6,214,160,.6)';
+  txt.textContent=`${aiState.lives}命 · 高度${Math.round((1-(aiState.y/canvas.height))*100)}%`;
+}
+function hideAllOverlays(){
+  ['startOv','deadOv','winOv','gameoverOv','inviteOv'].forEach(id=>document.getElementById(id).classList.remove('show'));
+}
+function showWin(){
+  state='win';
+  document.getElementById('winSub').textContent=`分數 ${score}，第 ${level} 關完成！`;
+  document.getElementById('winOv').classList.add('show');
+  submitScore();
+  showToast('🏆 你成功了！儲存分數到排行榜中…');
+  postSysMsg(`🏆 ${myName} 以 ${score} 分完成第 ${level} 關！`);
+  requestAIComment(`玩家${myName}剛過關！分數${score}，第${level}關`);
+}
+function showGameOver(){
+  state='gameover';
+  document.getElementById('gameoverSub').textContent=`最終分數 ${score}`;
+  document.getElementById('gameoverOv').classList.add('show');
+  submitScore();
+  postSysMsg(`💀 ${myName} 遊戲結束，最終分數 ${score}`);
+}
+function showInvite(){
+  hideAllOverlays();
+  document.getElementById('inviteOv').classList.add('show');
+  document.getElementById('inviteLinkDisp').textContent=inviteLink;
+}
+function closeInvite(){
+  document.getElementById('inviteOv').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════════
+function keyDown(k){
+  if(k==='left') keys.left=true;
+  if(k==='right') keys.right=true;
+  if(k==='jump'||k==='up') keys.jump=true;
+  document.getElementById(k==='left'?'dLeft':k==='right'?'dRight':'dUp')?.classList.add('pressed');
+  if(k==='jump') document.getElementById('jumpBtn')?.classList.add('pressed');
+}
+function keyUp(k){
+  if(k==='left') keys.left=false;
+  if(k==='right') keys.right=false;
+  if(k==='jump'||k==='up') keys.jump=false;
+  document.getElementById(k==='left'?'dLeft':k==='right'?'dRight':'dUp')?.classList.remove('pressed');
+  if(k==='jump') document.getElementById('jumpBtn')?.classList.remove('pressed');
+}
+document.addEventListener('keydown',e=>{
+  if(document.activeElement.tagName==='INPUT') return;
+  if(e.key==='ArrowLeft'||e.key==='a') keyDown('left');
+  if(e.key==='ArrowRight'||e.key==='d') keyDown('right');
+  if(e.key==='ArrowUp'||e.key==='w') keyDown('up');
+  if(e.key===' '||e.key==='z') {e.preventDefault();keyDown('jump');}
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a') keyUp('left');
+  if(e.key==='ArrowRight'||e.key==='d') keyUp('right');
+  if(e.key==='ArrowUp'||e.key==='w') keyUp('up');
+  if(e.key===' '||e.key==='z') keyUp('jump');
+});
+
+// ═══════════════════════════════════════════
+//  AI SELECTOR
+// ═══════════════════════════════════════════
+function buildAIList(){
+  const c=document.getElementById('aiList');c.innerHTML='';
+  AI_LEVELS.forEach(ai=>{
+    const d=document.createElement('div');
+    d.className='ai-row'+(ai===selectedAI?' selected':'');
+    d.innerHTML=`<div class="ai-ava" style="background:${ai.color}1a;border:1.5px solid ${ai.color}50;">${ai.emoji}</div>
+      <div>
+        <div class="ai-name">${ai.name}</div>
+        <div class="ai-stars" style="color:${ai.color}">${ai.stars}</div>
+        <div class="ai-desc">${ai.desc}</div>
+      </div>`;
+    d.onclick=()=>{
+      selectedAI=ai;
+      document.querySelectorAll('.ai-row').forEach(x=>x.classList.remove('selected'));
+      d.classList.add('selected');
+      document.getElementById('aiNameDisp').textContent=ai.emoji+' '+ai.name;
+    };
+    c.appendChild(d);
+  });
+}
+
+// ═══════════════════════════════════════════
+//  INVITE & SHARE
+// ═══════════════════════════════════════════
+let roomCode='';
+let inviteLink='';
+function generateInvite(){
+  roomCode=Math.random().toString(36).slice(2,8).toUpperCase();
+  const base=location.href.split('?')[0];
+  inviteLink=`${base}?room=${roomCode}`;
+  document.getElementById('inviteLinkSide').textContent=inviteLink;
+  document.getElementById('inviteLinkDisp').textContent=inviteLink;
+}
+function copyInvite(){
+  navigator.clipboard?.writeText(inviteLink).then(()=>{
+    showToast('📋 連結已複製！快傳給朋友吧！');
+  }).catch(()=>{
+    showToast('連結：'+inviteLink);
+  });
+}
+function shareInvite(){
+  if(navigator.share){
+    navigator.share({title:'金剛爬塔邀請',text:'來和我一起玩金剛爬塔！',url:inviteLink})
+    .catch(()=>copyInvite());
+  } else { copyInvite(); }
+}
+
+// Toast
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('aiToast');
+  t.textContent=msg;t.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ═══════════════════════════════════════════
+//  HI-SCORE persistence (localStorage)
+// ═══════════════════════════════════════════
+function saveHiScore(){
+  try{localStorage.setItem('kongHi',hiScore);}catch(e){}
+}
+function loadHiScore(){
+  try{const h=localStorage.getItem('kongHi');if(h) hiScore=parseInt(h)||0;}catch(e){}
+}
+
+// ═══════════════════════════════════════════
+//  RUNTIME CAPABILITIES (db + room + sample)
+// ═══════════════════════════════════════════
+let dbRef=null,roomRef=null,sampleRef=null,userRef=null;
+let myUserId='guest_'+Math.random().toString(36).slice(2,8);
+let myName='玩家';
+
+async function initCapabilities(){
+  try{
+    [dbRef,roomRef,sampleRef,userRef]=await Promise.all([
+      claude.use('db').catch(()=>null),
+      claude.use('room').catch(()=>null),
+      claude.use('sample').catch(()=>null),
+      claude.use('user').catch(()=>null),
+    ]);
+    if(userRef) try{myUserId=await userRef.id();}catch(e){}
+
+    // Check URL for room param (invited)
+    const params=new URLSearchParams(location.search);
+    const urlRoom=params.get('room');
+    if(urlRoom){roomCode=urlRoom;inviteLink=location.href;}
+
+    if(dbRef){
+      await loadLeaderboard();
+      setInterval(loadLeaderboard,20000);
+      await loadHistory();
+      setupDbSubscription();
+    }
+    if(roomRef){
+      initRoom();
+    }
+    // Update chat online dot
+    const dot=document.getElementById('chatOnlineDot');
+    const txt=document.getElementById('chatOnlineTxt');
+    dot.style.background='var(--green)';
+    dot.style.boxShadow='0 0 6px rgba(6,214,160,.4)';
+    txt.textContent='聊天室已連線';
+    // Welcome message
+    postSysMsg(`👾 ${myName} 加入了遊戲！`);
+  }catch(e){
+    document.getElementById('lbList').innerHTML='<div style="font-size:11px;color:var(--text2);padding:8px;">離線模式</div>';
+    document.getElementById('chatOnlineTxt').textContent='本地模式';
+  }
+}
+
+async function loadLeaderboard(){
+  if(!dbRef) return;
+  try{
+    const snap=await dbRef.collection('scores').orderBy('score','desc').limit(10).get();
+    const rows=[];
+    snap.forEach(d=>rows.push({id:d.id,...d.data()}));
+    renderLB(rows);
+  }catch(e){}
+}
+
+function renderLB(rows){
+  const el=document.getElementById('lbList');
+  if(!rows.length){el.innerHTML='<div style="font-size:11px;color:var(--text2);padding:8px;">尚無記錄</div>';return;}
+  el.innerHTML=rows.map((r,i)=>{
+    const rank=['🥇','🥈','🥉'][i]||(i+1);
+    const isMe=r.uid===myUserId;
+    return `<div class="lb-row">
+      <div class="lb-rank${i===0?' gold':i===1?' silver':i===2?' bronze':''}">${rank}</div>
+      <div class="lb-name${isMe?' lb-you':''}">${escHtml(r.name||'玩家')}${isMe?' (你)':''}</div>
+      <div class="lb-score">${r.score||0}</div>
+    </div>`;
+  }).join('');
+}
+
+async function submitScore(){
+  if(!dbRef||score<10) return;
+  try{
+    const docId=myUserId;
+    const existing=await dbRef.collection('scores').doc(docId).get().catch(()=>null);
+    const prevScore=existing?.data()?.score||0;
+    if(score>prevScore){
+      await dbRef.collection('scores').doc(docId).set({uid:myUserId,name:myName,score,level,ts:Date.now()});
+      await loadLeaderboard();
+    }
+  }catch(e){}
+}
+
+// Room: real-time presence + chat broadcast
+function initRoom(){
+  if(!roomRef) return;
+  try{
+    const params=new URLSearchParams(location.search);
+    const urlRoom=params.get('room');
+    if(urlRoom) roomRef.join(urlRoom);
+    roomRef.presence({name:myName,score:0,level:1});
+    // receive chat from others
+    roomRef.on('chat',data=>{
+      if(data.uid===myUserId) return; // already rendered locally
+      renderMsg('rm_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),data);
+    });
+    // score updates from friends
+    roomRef.on('score_update',data=>{
+      if(data.uid!==myUserId) showToast(`👥 ${data.name||'朋友'} 分數 ${data.score}！`);
+    });
+    // presence list
+    roomRef.onPeers(update=>{
+      renderOnline(update.peers||[]);
+      const n=(update.peers||[]).length;
+      if(n>1) {
+        const dot=document.getElementById('chatOnlineDot');
+        dot.style.background='var(--green)';
+        dot.style.boxShadow='0 0 8px rgba(6,214,160,.6)';
+        dot.style.animation='chatPulse 2s infinite';
+      }
+    });
+  }catch(e){}
+}
+
+// Broadcast score update to room friends
+function broadcastScore(){
+  if(!roomRef) return;
+  try{
+    roomRef.emit('score_update',{uid:myUserId,name:myName,score,level});
+    roomRef.presence({name:myName,score,level});
+  }catch(e){}
+}
+setInterval(()=>{if(state==='playing') broadcastScore();},5000);
+
+// ═══════════════════════════════════════════
+//  CHAT — full db + room implementation
+// ═══════════════════════════════════════════
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+const seenMsgIds=new Set();
+let peers={};
+
+function nickColor(uid){
+  const palette=['#9060d0','#20a0c0','#d06020','#20c060','#c03060','#6090d0','#a06000','#008080'];
+  let h=0;for(const c of (uid||'x')) h=(h*31+c.charCodeAt(0))&0xffff;
+  return palette[h%palette.length];
+}
+
+function fmtTime(ts){
+  if(!ts) return '';
+  return new Date(ts).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+}
+
+function renderMsg(id,data){
+  if(seenMsgIds.has(id)) return;
+  seenMsgIds.add(id);
+  const isSelf=data.uid===myUserId;
+  const isAI=data.uid==='ai_commentator';
+  const isSys=data.type==='system';
+  const el=document.getElementById('chatMsgs');
+  const wrap=document.createElement('div');
+  if(isSys){
+    wrap.className='chat-msg sys';
+    wrap.innerHTML=`<div class="chat-bubble">${escHtml(data.text||'')}</div>`;
+  } else {
+    wrap.className='chat-msg '+(isSelf?'self':isAI?'ai-c':'other');
+    const color=isAI?'var(--teal)':isSelf?'#c0a0f0':nickColor(data.uid||'x');
+    const ava=isAI?'🤖':isSelf?'😊':'👤';
+    wrap.innerHTML=`
+      <div class="chat-meta">
+        <div class="chat-avatar" style="background:${color}22;">${ava}</div>
+        <span class="chat-name" style="color:${color}">${escHtml(data.name||'玩家')}</span>
+        <span class="chat-time">${fmtTime(data.ts)}</span>
+      </div>
+      <div class="chat-bubble">${escHtml(data.text||'')}</div>`;
+  }
+  wrap.id='msg-'+id;
+  el.appendChild(wrap);
+  el.scrollTop=el.scrollHeight;
+}
+
+async function persistMsg(msg){
+  if(!dbRef) return;
+  try{ await dbRef.collection('kong_chat').doc(msg.id).set(msg); }catch(e){}
+}
+
+async function loadHistory(){
+  if(!dbRef) return;
+  try{
+    const snap=await dbRef.collection('kong_chat').orderBy('ts').limit(50).get();
+    snap.forEach(d=>renderMsg(d.id,d.data()));
+  }catch(e){}
+}
+
+function setupDbSubscription(){
+  if(!dbRef) return;
+  try{
+    dbRef.collection('kong_chat').orderBy('ts').limit(80).onSnapshot(snap=>{
+      snap.docChanges().forEach(ch=>{
+        if(ch.type==='added') renderMsg(ch.doc.id,ch.doc.data());
+      });
+    });
+  }catch(e){}
+}
+
+function renderOnline(peerList){
+  peers={};
+  peerList.forEach(p=>{if(p.state) peers[p.who?.id||Math.random()]=p.state;});
+  const names=Object.values(peers).map(s=>s.name||'玩家').filter(Boolean);
+  const ol=document.getElementById('onlineList');
+  const dot=document.getElementById('chatOnlineDot');
+  const txt=document.getElementById('chatOnlineTxt');
+  if(names.length>0){
+    ol.innerHTML=names.map(n=>`<span class="online-chip">🟢 ${escHtml(n)}</span>`).join('');
+    dot.style.background='var(--green)';
+    dot.style.boxShadow='0 0 6px rgba(6,214,160,.5)';
+    txt.textContent=names.length+'人在線';
+  } else {
+    ol.innerHTML='';
+    dot.style.background='var(--teal)';
+    txt.textContent='聊天室已連線';
+  }
+}
+
+function showTyping(){
+  const t=document.getElementById('typingInd');
+  t.style.display='block';
+  document.getElementById('chatMsgs').scrollTop=9999;
+  return()=>t.style.display='none';
+}
+
+async function sendChat(text){
+  const inp=document.getElementById('chatInp');
+  const val=(text||inp.value).trim();
+  if(!val) return;
+  if(!text) inp.value='';
+  // read nick
+  const nick=document.getElementById('nickInp').value.trim()||'玩家';
+  if(nick!==myName){ myName=nick; localStorage.setItem('kongNick',nick); }
+  const id='msg_'+Date.now()+'_'+myUserId.slice(-4);
+  const msg={id,uid:myUserId,name:myName,text:val,ts:Date.now(),type:'chat'};
+  renderMsg(id,msg);
+  if(roomRef) try{roomRef.emit('chat',msg);}catch(e){}
+  await persistMsg(msg);
+  if(roomRef) try{roomRef.presence({name:myName,score,level});}catch(e){}
+}
+
+function quickChat(text){ sendChat(text); }
+
+async function postSysMsg(text){
+  const id='sys_'+Date.now();
+  const msg={id,uid:'system',name:'系統',text,ts:Date.now(),type:'system'};
+  renderMsg(id,msg);
+  await persistMsg(msg);
+}
+
+// AI commentator in chat
+let lastAIChat=0;
+async function requestAIComment(ctx){
+  if(!sampleRef) return;
+  if(Date.now()-lastAIChat<9000) return;
+  lastAIChat=Date.now();
+  const hide=showTyping();
+  const context=ctx||`玩家分數${score}，第${level}關，剩${lives}命，AI對手是「${selectedAI.name}」`;
+  try{
+    const res=await sampleRef(`你是金剛爬塔遊戲的幽默解說員，用繁體中文40字內評論。可以用1個emoji。狀況：${context}`,{modelTier:'quick'});
+    hide();
+    const id='ai_'+Date.now();
+    const msg={id,uid:'ai_commentator',name:'🤖 AI解說員',text:res.text,ts:Date.now(),type:'chat'};
+    renderMsg(id,msg);
+    if(roomRef) try{roomRef.emit('chat',msg);}catch(e){}
+    await persistMsg(msg);
+  }catch(e){hide();}
+}
+
+// Auto-trigger AI comment at milestones
+let lastAutoCommentScore=0;
+setInterval(()=>{
+  if(state==='playing'&&score-lastAutoCommentScore>600){
+    lastAutoCommentScore=score;
+    requestAIComment();
+  }
+},6000);
+
+document.getElementById('chatInp').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}
+});
+
+// Restore nick from localStorage
+const savedNick=localStorage.getItem('kongNick');
+if(savedNick){myName=savedNick;document.getElementById('nickInp').value=savedNick;}
+document.getElementById('nickInp').addEventListener('change',()=>{
+  myName=document.getElementById('nickInp').value.trim()||'玩家';
+  localStorage.setItem('kongNick',myName);
+  if(roomRef) try{roomRef.presence({name:myName,score,level});}catch(e){}
+});
+
+// ═══════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════
+loadHiScore();
+updateHUD();
+buildAIList();
+generateInvite();
+setMode('solo'); // default: solo
+setupCanvas();
+buildLevel(1);
+resetAI();
+draw();
+initCapabilities();
+document.getElementById('aiNameDisp').textContent=selectedAI.emoji+' '+selectedAI.name;
+gameLoop();
+
+</script>
+</body>
+</html>
